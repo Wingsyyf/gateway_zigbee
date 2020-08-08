@@ -1,0 +1,26 @@
+setenv bootargs root=/dev/nfs nfsroot=192.168.1.8:/opt/rootfs ip=192.168.1.9:192.168.1.8:192.168.1.1:255.255.255.0::eth0:off init=/linuxrc console=ttyS0,115200
+
+sudo service nfs-kernel-server restart
+
+ifconfig eth0 192.168.1.10
+ifconfig eth0 192.168.19.252
+
+udhcpc
+
+mount -t nfs -o nolock 192.168.1.8:/opt/nfsroot /mnt
+mount -t nfs -o nolock 192.168.19.228:/opt/nfsroot /mnt
+
+echo 'nameserver 180.76.76.76' >>  /etc/resolv.conf
+
+arm-poky-linux-gnueabi-gcc
+
+ntpclient -s -d -c 1 -i 5 -h 120.25.108.11
+
+
+export PATH=/home/wings/NXP/2.3_OS_Linux-4.1.15/03_toolchain/fsl-imx-x11-glibc-x86_64-meta-toolchain-qt5-cortexa7hf-neon-toolchain-4.1.15-2.1.0/sysroots/x86_64-pokysdk-linux/usr/bin:/home/wings/NXP/2.3_OS_Linux-4.1.15/03_toolchain/fsl-imx-x11-glibc-x86_64-meta-toolchain-qt5-cortexa7hf-neon-toolchain-4.1.15-2.1.0/sysroots/x86_64-pokysdk-linux/usr/sbin:/home/wings/NXP/2.3_OS_Linux-4.1.15/03_toolchain/fsl-imx-x11-glibc-x86_64-meta-toolchain-qt5-cortexa7hf-neon-toolchain-4.1.15-2.1.0/sysroots/x86_64-pokysdk-linux/bin:/home/wings/NXP/2.3_OS_Linux-4.1.15/03_toolchain/fsl-imx-x11-glibc-x86_64-meta-toolchain-qt5-cortexa7hf-neon-toolchain-4.1.15-2.1.0/sysroots/x86_64-pokysdk-linux/sbin:/home/wings/NXP/2.3_OS_Linux-4.1.15/03_toolchain/fsl-imx-x11-glibc-x86_64-meta-toolchain-qt5-cortexa7hf-neon-toolchain-4.1.15-2.1.0/sysroots/x86_64-pokysdk-linux/usr/bin/../x86_64-pokysdk-linux/bin:/home/wings/NXP/2.3_OS_Linux-4.1.15/03_toolchain/fsl-imx-x11-glibc-x86_64-meta-toolchain-qt5-cortexa7hf-neon-toolchain-4.1.15-2.1.0/sysroots/x86_64-pokysdk-linux/usr/bin/arm-poky-linux-gnueabi:/home/wings/NXP/2.3_OS_Linux-4.1.15/03_toolchain/fsl-imx-x11-glibc-x86_64-meta-toolchain-qt5-cortexa7hf-neon-toolchain-4.1.15-2.1.0/sysroots/x86_64-pokysdk-linux/usr/bin/arm-poky-linux-uclibc:/home/wings/NXP/2.3_OS_Linux-4.1.15/03_toolchain/fsl-imx-x11-glibc-x86_64-meta-toolchain-qt5-cortexa7hf-neon-toolchain-4.1.15-2.1.0/sysroots/x86_64-pokysdk-linux/usr/bin/arm-poky-linux-musl:$PATH
+
+
+
+PC：214
+ARM：252
+UBUNTU：228

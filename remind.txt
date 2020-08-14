@@ -24,3 +24,6 @@ export PATH=/home/wings/NXP/2.3_OS_Linux-4.1.15/03_toolchain/fsl-imx-x11-glibc-x
 PC：214
 ARM：252
 UBUNTU：228
+
+dropbear port:1667
+

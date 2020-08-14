@@ -41,12 +41,12 @@ int en_queue(Queue *handle, data_t data)
     if (is_queue_full(handle) == 1) { //满数据不能入队
         return -1;
     }   
-    printf("en_queue1:front=%d,rear=%d\n",handle->front,handle->rear);
+    //printf("en_queue1:front=%d,rear=%d\n",handle->front,handle->rear);
 
     //strcpy(handle->queue_data[handle->rear] ,data); //添加元素到队尾指向的位置***************************************************
     //handle->queue_data[handle->rear]=data;
     memcpy(handle->queue_data[handle->rear],data,4);
-    printf("en_queue2:front=%d,rear=%d\n",handle->front,handle->rear);
+    printf("en_queue:front=%d,rear=%d\n",handle->front,handle->rear);
 
     handle->rear = (handle->rear + 1) % N;
     
@@ -70,10 +70,10 @@ int de_queue(Queue *handle, data_t *data)
     }
  
     if (data != NULL) {
-        printf("de_queue1:front=%d,rear=%d\n",handle->front,handle->rear);  
+        //printf("de_queue1:front=%d,rear=%d\n",handle->front,handle->rear);  
         //strcpy(*data ,handle->queue_data[handle->front]); //传队首元素的值出去
         memcpy(*data ,handle->queue_data[handle->front],4); //传队首元素的值出去
-        printf("de_queue2:front=%d,rear=%d\n",handle->front,handle->rear);  
+        printf("de_queue:front=%d,rear=%d\n",handle->front,handle->rear);  
     }
     handle->front = (handle->front + 1)%N;
     /*if((handle->front)==N){

@@ -1,21 +1,19 @@
-#include "gateway.h"
 #include "myport.h"
 #include "myuart.h"
 #include "databuffifo.h"
+#include "gateway.h"
 
+
+pthread_mutex_t m_mutex;
+pthread_mutex_t net_mutex;
+pthread_mutex_t log_mutex;
 
 //typedef struct arg_struct ARG ;
-
-void* uart_pthread_func(void *arg);
-void* port_pthread_func(void *arg);
-void* port1_pthread_func(void *arg);
-void* port2_pthread_func(void *arg);
-
 typedef struct arg_struct {
     //Queue *handle;
     pthread_mutex_t m_mutex;
     pthread_mutex_t net_mutex;
-    pthread_mutex_t net1_mutex;
+    pthread_mutex_t log_mutex;
 }arg_struct;
 
 //pthread_mutex_t mlock = PTHREAD_MUTEX_INITIALIZER;
@@ -24,11 +22,13 @@ char *timecmd="ntpclient -s -d -c 1 -i 5 -h 120.25.108.11";
 
 Queue *handle;
 
-
 void main(int argc, char *argv[]){
     //FILE *fperror = fopen("err-log.txt","w");
     printf("main run begin\n");
+    
+    pthread_mutex_lock(&log_mutex);
     write_log(RUNLOG,"main run begin\n");
+    pthread_mutex_unlock(&log_mutex);
    
 /*************************************************************
 *--------------------FUNCTION---------------------------------
@@ -41,12 +41,12 @@ void main(int argc, char *argv[]){
         //printf("error with fork timepid\n");
         write_log(ERRLOG,"error with fork timepid\n");
     }
-    else if(timepid==0){       
+    else if(timepid==0){
         while(1){
             tcr=system(timecmd);
             if(tcr==-1){
                 perror("Error: ");
-            }  
+            }
             sleep(TIMER_STANDARD_TIME);
 	    }
     }
@@ -58,7 +58,7 @@ void main(int argc, char *argv[]){
 *************************************************************/
     else
     {
-        pthread_t uart_pthread,port_pthread,port1_pthread,port2_pthread;
+        pthread_t uart_pthread,contrl_pthread,port_pthread,port1_pthread,port2_pthread;
       
         arg_struct arg;
 
@@ -66,7 +66,13 @@ void main(int argc, char *argv[]){
 
         pthread_mutex_init(&m_mutex, NULL);
         pthread_mutex_init(&net_mutex, NULL);
-        pthread_mutex_init(&net1_mutex, NULL);
+        pthread_mutex_init(&log_mutex, NULL);
+
+        if (pthread_create(&port2_pthread, NULL, (void*)port2_pthread_func, NULL) != 0) {
+
+            write_log(ERRLOG,"port1_pthread create error\n");
+            exit(EXIT_FAILURE);
+        }
 
         if (pthread_create(&uart_pthread, NULL, (void*)uart_pthread_func, NULL) != 0) {
 
@@ -83,20 +89,16 @@ void main(int argc, char *argv[]){
             write_log(ERRLOG,"port1_pthread create error\n");
             exit(EXIT_FAILURE);
         }
-        if (pthread_create(&port2_pthread, NULL, (void*)port2_pthread_func, NULL) != 0) {
-
-            write_log(ERRLOG,"port1_pthread create error\n");
-            exit(EXIT_FAILURE);
-        }
         
-        pthread_join(uart_pthread,NULL);
+        pthread_join(port2_pthread,NULL);
+        pthread_join(uart_pthread,NULL);  
         pthread_join(port_pthread,NULL);
         pthread_join(port1_pthread,NULL);
-        pthread_join(port2_pthread,NULL);
+        
 
-        pthread_mutex_destroy(&m_mutex); 
+        pthread_mutex_destroy(&m_mutex);
         pthread_mutex_destroy(&net_mutex); 
-        pthread_mutex_destroy(&net1_mutex); 
+        pthread_mutex_destroy(&log_mutex); 
     }
     
     exit(0);
@@ -129,7 +131,7 @@ void* uart_pthread_func(void *arg){
 *--------------------FUNCTION---------------------------------
 *                   * 打开串口 *
 * 
-*************************************************************/           
+*************************************************************/
         fduart2 = open_port();
         set_speed(fduart2,115200);
         if (set_Parity(fduart2,8,1,'N') == FALSE){
@@ -137,8 +139,11 @@ void* uart_pthread_func(void *arg){
             write_log(ERRLOG,"Set Parity Error\n");
             //exit(1);
         }
-        //write_log(RUNLOG,"uart_pthread run\n");   
-        //printf("\n");   
+        //write_log(RUNLOG,"uart_pthread run\n");
+        pthread_mutex_lock(&log_mutex);
+        write_log(RUNLOG,"uart_pthread run\n");
+        pthread_mutex_unlock(&log_mutex);
+        //printf("\n");
         //ARG * p = (ARG *) arg ;
     //*****************开始读数据******************************************
         while (1){   
@@ -223,13 +228,14 @@ void* uart_pthread_func(void *arg){
                             char readbufftemp[4]={0};
                             for(int buff_i=0;buff_i<4;buff_i++){
                                 readbufftemp[buff_i]=readbuff[buff_i+1];
-                            }                               
+                            } 
+                            write_run_info(readbufftemp[2],readbufftemp[3],readbufftemp[0],readbufftemp[1]);
                             //临界区----------------------------------------------
                             //写入数据--------------------------------------------
                             pthread_mutex_lock(&m_mutex);
                             if(is_queue_full(handle)==0){
                                 
-                                printf("readbufftemp=%s \n",readbufftemp);
+                                //printf("readbufftemp=%s \n",readbufftemp);
                                 while(en_queue(handle,readbufftemp)!=0){
                                     write_log(ERRLOG,"en_queue error\n");
                                 }
@@ -256,7 +262,9 @@ void* uart_pthread_func(void *arg){
 void* port_pthread_func(void *arg){
     //printf("port_pthread_func start\n");
         //Queue *handle=(Queue *) arg;
-        write_log(RUNLOG,"port0_pthread run\n");  
+        pthread_mutex_lock(&log_mutex);
+        write_log(RUNLOG,"port0_pthread run\n");
+        pthread_mutex_unlock(&log_mutex);
         arg=(arg_struct*) arg;
         //Queue *handle=(Queue *)(((arg_struct*)arg)->handle);
 
@@ -313,8 +321,8 @@ void* port_pthread_func(void *arg){
                 }
                 else if(temp_cnt==3){
                     write_log(ERRLOG,"json error and try 3 times\n");
-                }
-                             
+                    
+                }           
             }
             //usleep(100000);
             //sleep(1);
@@ -330,7 +338,10 @@ void* port_pthread_func(void *arg){
 void* port1_pthread_func(void *arg){
     //printf("port_pthread_func start\n");
         //Queue *handle=(Queue *) arg;
-        write_log(RUNLOG,"port1_pthread run\n");  
+        //write_log(RUNLOG,"port1_pthread run\n"); 
+        pthread_mutex_lock(&log_mutex);
+        write_log(RUNLOG,"port1_pthread run\n");
+        pthread_mutex_unlock(&log_mutex); 
         arg=(arg_struct*) arg;
         //Queue *handle=(Queue *)(((arg_struct*)arg)->handle);
 
@@ -402,7 +413,10 @@ void* port1_pthread_func(void *arg){
 void* port2_pthread_func(void *arg){
     //printf("port_pthread_func start\n");
         //Queue *handle=(Queue *) arg;
-        write_log(RUNLOG,"port2_pthread run\n");  
+        //write_log(RUNLOG,"port2_pthread run\n");
+        pthread_mutex_lock(&log_mutex);
+        write_log(RUNLOG,"port2_pthread run\n");
+        pthread_mutex_unlock(&log_mutex);
         arg=(arg_struct*) arg;
         //Queue *handle=(Queue *)(((arg_struct*)arg)->handle);
 
@@ -480,7 +494,8 @@ int write_log(char* fp, char* str){
 	char time_nowD[2];
     char time_nowH[2];
     char time_nowMI[2];
-    char time_nowS[2];
+    char time_nowS[2]={0,0};
+
     time_t now;
     struct tm *tm_now;
     time(&now);
@@ -490,6 +505,7 @@ int write_log(char* fp, char* str){
 		time_now[i]=0;
 	}
     sprintf(time_nowY, "%d", tm_now->tm_year+1900);
+
 	if((tm_now->tm_mon+1)==0){
 		time_nowMO[0]='1';
 		time_nowMO[1]='2';
@@ -501,13 +517,15 @@ int write_log(char* fp, char* str){
 	else{
 		sprintf(time_nowMO, "%d", tm_now->tm_mon+1);
 	}
+
 	sprintf(time_nowD, "%d", tm_now->tm_mday);
+
     if((tm_now->tm_hour)>=0&&(tm_now->tm_hour)<=9){
         time_nowH[0]='0';
-        char time_nowH_temp='0'+tm_now->tm_hour;
-        //printf("time_nowH_temp=%c\n",time_nowH_temp);
+        int temp_tm_hour=tm_now->tm_hour;
+        char time_nowH_temp='0'+temp_tm_hour;
         time_nowMI[1]=time_nowH_temp;
-        //sprintf(time_nowH[1], "%d", tm_now->tm_hour);
+
     }
     else{
         sprintf(time_nowH, "%d", tm_now->tm_hour);
@@ -516,12 +534,117 @@ int write_log(char* fp, char* str){
    
     if((tm_now->tm_min)>=0&&(tm_now->tm_min)<=9){
         time_nowMI[0]='0';
-        char time_nowMI_temp='0'+tm_now->tm_min;
-        //printf("time_nowMI_temp=%c\n",time_nowMI_temp);
+        int temp_tm_min=tm_now->tm_min;
+        char time_nowMI_temp='0'+temp_tm_min;
         time_nowMI[1]=time_nowMI_temp;
-        //sprintf(time_nowMI[1], "%d", tm_now->tm_min);
-        //time_nowMI[1]=(char)tm_now->tm_min;
-        //printf("%d\n",tm_now->tm_min);
+ 
+    }
+    else{
+        sprintf(time_nowMI, "%d", tm_now->tm_min);
+    }
+    
+    if((tm_now->tm_sec)>=0&&(tm_now->tm_sec)<=9){  
+        time_nowS[0]='0';
+        char time_nowS_temp[1];
+
+        int temp_tm_sec=tm_now->tm_sec;
+        time_nowS[1]='0'+temp_tm_sec;
+
+
+    }
+    else{
+        sprintf(time_nowS, "%d", tm_now->tm_sec);
+    }
+
+        
+    
+	strcat(time_now,time_nowY);
+	strcat(time_now,"-");
+	strcat(time_now,time_nowMO);
+	strcat(time_now,"-");
+	strcat(time_now,time_nowD);
+    strcat(time_now," ");
+    strcat(time_now,time_nowH);
+    strcat(time_now,":");
+    strcat(time_now,time_nowMI);
+    strcat(time_now,":");
+    strcat(time_now,time_nowS);
+    strcat(time_now,"#");
+
+    if((filepoint=open(fp, O_WRONLY | O_CREAT | O_APPEND, 0666))==-1){
+        printf("open faild\n");
+        return -1;
+    }
+ 
+    strcat(time_now,str);
+    write(filepoint,&time_now,strlen(time_now));
+
+    close(filepoint);
+
+    return 0;
+
+}
+
+int write_run_info(char uart_str_eqpnum,char uart_str_eqpstate,char uart_str_stepkey0,char uart_str_stepkey1){
+    FILE *filepoint;
+    unsigned char time_nowY[4]="\0";
+	unsigned char time_nowMO[2]="\0";
+	unsigned char time_nowD[2]="\0";
+    unsigned char time_nowH[2]="\0";
+    unsigned char time_nowMI[2]="\0";
+    unsigned char time_nowS[2]="\0";
+    time_t now;
+    unsigned char time_now[30]="\0";
+    unsigned char str_compare_temp[20+6]="\0";
+    unsigned char c_temp;
+    int line=0;
+    long int offset_temp; 
+    unsigned char eqp_eqpnum_temp[1]="\0";
+    unsigned char eqp_state_temp[1]="\0";
+    unsigned char eqp_stepkey0_temp[1]="\0";
+    unsigned char eqp_stepkey1_temp[1]="\0";
+    unsigned char uart_str_eqpnum1[1]="\0";
+    unsigned char uart_str_eqpnum2[1]="\0";
+    int file_len=0;
+
+    struct tm *tm_now;
+    time(&now);
+    tm_now = localtime(&now);
+    
+    for(int i=0;i<20;i++){
+		time_now[i]=0;
+	}
+    sprintf(time_nowY, "%d", tm_now->tm_year+1900);
+
+	if((tm_now->tm_mon+1)==0){
+		time_nowMO[0]='1';
+		time_nowMO[1]='2';
+	}
+	else if((tm_now->tm_mon+1)>0&&(tm_now->tm_mon+1)<10){
+		time_nowMO[0]='0';
+		sprintf(&time_nowMO[1], "%d", tm_now->tm_mon+1);
+	}
+	else{
+		sprintf(time_nowMO, "%d", tm_now->tm_mon+1);
+	}
+
+	sprintf(time_nowD, "%d", tm_now->tm_mday);
+
+    if((tm_now->tm_hour)>=0&&(tm_now->tm_hour)<=9){
+        time_nowH[0]='0';
+        int temp_tm_hour=tm_now->tm_hour;
+        char time_nowH_temp=(char)('0'+temp_tm_hour);
+        time_nowMI[1]=time_nowH_temp;
+    }
+    else{
+        sprintf(time_nowH, "%d", tm_now->tm_hour);
+    }
+    
+    if((tm_now->tm_min)>=0&&(tm_now->tm_min)<=9){
+        time_nowMI[0]='0';
+        int temp_tm_min=tm_now->tm_min;
+        char time_nowMI_temp=(char)('0'+temp_tm_min);
+        time_nowMI[1]=time_nowMI_temp;
     }
     else{
         sprintf(time_nowMI, "%d", tm_now->tm_min);
@@ -529,10 +652,9 @@ int write_log(char* fp, char* str){
     
     if((tm_now->tm_sec)>=0&&(tm_now->tm_sec)<=9){
         time_nowS[0]='0';
-        char time_nowS_temp='0'+tm_now->tm_sec;
-
+        int temp_tm_sec=tm_now->tm_sec;
+        char time_nowS_temp=(char)('0'+temp_tm_sec);
         time_nowS[1]=time_nowS_temp;
-
     }
     else{
         sprintf(time_nowS, "%d", tm_now->tm_sec);
@@ -551,22 +673,116 @@ int write_log(char* fp, char* str){
     strcat(time_now,time_nowS);
     strcat(time_now,"/");
 
-    if((filepoint=open(fp, O_WRONLY | O_CREAT | O_APPEND, 0666))==-1){
+    
+    if((filepoint=fopen("run-info.txt", "a+"))==NULL){
         printf("open faild\n");
         return -1;
     }
-    //filepoint=fopen(fp, "a+");
-    //fprintf(fp,time_now,"\t",str);
-    //write(filepoint,time_now,20);
-    //pthread_mutex_lock(&m_mutex);
-    strcat(time_now,str);
-    write(filepoint,&time_now,strlen(time_now));
-    //pthread_mutex_unlock(&m_mutex);
-    //printf("filepoint =%s\n",time_now);
-    //printf("filepoint sizeof=%d\n",strlen(time_now));
 
-    close(filepoint);
+    fseek(filepoint,0,SEEK_END);
+    file_len=ftell(filepoint);
+    printf("file_len=%d\n",file_len);
 
+    fseek(filepoint,0,SEEK_SET);
+    char temp[5120];
+    fread(temp,1,file_len,filepoint);
+    printf("%s\n",temp);
+    fseek(filepoint,0,SEEK_SET);
+    
+    if(file_len==0){
+        sprintf(eqp_stepkey0_temp,"%c",uart_str_stepkey0);
+        sprintf(eqp_stepkey1_temp,"%c",uart_str_stepkey1);
+        sprintf(eqp_eqpnum_temp,"%d",uart_str_eqpnum);
+        sprintf(eqp_state_temp,"%d",uart_str_eqpstate);
+        strcat(time_now,eqp_stepkey0_temp);
+        strcat(time_now,eqp_stepkey1_temp);
+        strcat(time_now,eqp_eqpnum_temp);
+        strcat(time_now,eqp_state_temp);
+        strcat(time_now,"\n");
+
+        fwrite(time_now,1,26,filepoint);
+
+        fseek(filepoint,0,SEEK_SET);
+        char temp[5120];
+        fread(temp,1,file_len,filepoint);
+        printf("%s\n",temp);
+        
+        printf("uart_str0\n");
+
+        fclose(filepoint);
+        return 0;
+    }
+    for(int i=0;i<(file_len/26);i++){
+        
+        fread(str_compare_temp,1,26,filepoint);
+
+        sprintf(eqp_stepkey0_temp,"%c",uart_str_stepkey0);
+        sprintf(eqp_stepkey1_temp,"%c",uart_str_stepkey1);
+        sprintf(eqp_eqpnum_temp,"%d",uart_str_eqpnum);
+        sprintf(eqp_state_temp,"%d",uart_str_eqpstate);
+        sprintf(uart_str_eqpnum1,"%d",uart_str_eqpnum/10);
+        sprintf(uart_str_eqpnum2,"%d",uart_str_eqpnum%10);
+
+        if((str_compare_temp[20]==uart_str_stepkey0)&&\
+        (str_compare_temp[21]==uart_str_stepkey1)&&\
+        ((str_compare_temp[22]!=uart_str_eqpnum1[0])||(str_compare_temp[23]!=uart_str_eqpnum2[0]))&&\
+        (i<((file_len/26)-1)))
+        {//eqpnum不匹配且没有循环完整个文件----continue &&(i<((file_len/26)-1))
+            printf("uart_str1\n");
+            continue;
+        }
+
+        if((str_compare_temp[20]==uart_str_stepkey0)&&\
+        (str_compare_temp[21]==uart_str_stepkey1)&&\
+        ((str_compare_temp[22]!=uart_str_eqpnum1[0])||(str_compare_temp[23]!=uart_str_eqpnum2[0]))&&\
+        (i==((file_len/26)-1)))
+        {//eqpnum不匹配且循环到文件最后一行---添加 &&\(i==((file_len/26)-1))
+
+            strcat(time_now,eqp_stepkey0_temp);
+            strcat(time_now,eqp_stepkey1_temp);
+            strcat(time_now,eqp_eqpnum_temp);
+            strcat(time_now,eqp_state_temp);
+            strcat(time_now,"\n");
+            //write(filepoint,&time_now,25);
+            //fprintf(filepoint,time_now);
+            fwrite(time_now,1,26,filepoint);
+            printf("uart_str2\n");
+            break;
+        }
+
+        /*if(((str_compare_temp[20]==uart_str_stepkey0)&&(str_compare_temp[21]==uart_str_stepkey1))&&\
+            (str_compare_temp[22]==uart_str_eqpnum1[0])&&\
+            (str_compare_temp[23]==uart_str_eqpnum2[0])&&\
+            (str_compare_temp[24]==eqp_state_temp[0])){//eqpnum匹配eqpstate匹配---break
+            printf("uart_str3\n");
+            break;
+        }*/
+
+        if(((str_compare_temp[20]==uart_str_stepkey0)&&(str_compare_temp[21]==uart_str_stepkey1))&&\
+        (str_compare_temp[22]==uart_str_eqpnum1[0])&&\
+        (str_compare_temp[23]==uart_str_eqpnum2[0])){
+
+            strcat(time_now,eqp_stepkey0_temp);
+            strcat(time_now,eqp_stepkey1_temp);
+            strcat(time_now,eqp_eqpnum_temp);
+            strcat(time_now,eqp_state_temp);
+            strcat(time_now,"\n");
+
+            offset_temp=i*26;
+            fseek(filepoint,0,SEEK_SET);
+            fseek(filepoint,offset_temp,SEEK_SET);
+
+            //fprintf(filepoint,time_now);
+            fwrite(time_now,1,26,filepoint);
+
+            printf("uart_str4\n");
+            printf("i=%d\n",i);
+            break;
+        }
+    }
+
+    fclose(filepoint);
     return 0;
 
 }
+

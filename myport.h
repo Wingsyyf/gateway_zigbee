@@ -18,6 +18,7 @@
 #define MD5_SIZE				16
 #define MD5_STR_LEN				(MD5_SIZE * 2)
 #define NET_KEY		    		"kw3j5k32ur38rnerkKJHk83"  //密钥
+//#define NET_KEY                 "B6CEE0603D38363E3E654023E7BF1286"
 #define TIMER_STANDARD_TIME 	3600//(s)		
 
 #define  RUNLOG          "run-log.txt"
@@ -40,7 +41,7 @@ int shift1;
 char* client1;
 int shift2;
 char* client2;
-//struct memory client;
+//struct memory client; RUNLOG
 
 
 /*************************************************************
@@ -155,19 +156,27 @@ int port_update0(char eqp_num, char eqp_state, char eqp_stepkey_1, char eqp_step
 	cJSON *json;
 	CURLcode res;
 
-	char *Ceqpnum="EQP_Ment_Num=";
-	char *Ceqpstate="&EQP_State=";
-	char *Ceqptime="&EQP_Time=";
+	
 	char *eqptime;
 	char eqptimebufY[4];
 	char eqptimebufM[2];
 	char eqptimebufD[2];
+
+	char *Ceqpnum="EQP_Ment_Num=";
+	char *Ceqpstate="&EQP_State=";
+	char *Ceqptime="&EQP_Time=";
 	char *Ceqpstepkey="&EQP_StepKey=";
-	//char *eqpstepkey="CS";
 	char *Ctimechar="&Timestamp=";
 	char *Cverifychar="&VerifyCode=";
-
 	char mysitehead[512]="http://gcfile.jiepei.com:8888/api/Alot/AddEQPLog?";
+
+	//char *Ceqpnum="EQP_Ment_Num=";
+	//char *Ceqpstate="&EQP_State=";
+	//char *Ceqptime="&EQP_Time=";
+	//char *Ceqpstepkey="&UserId=";
+	//char *Ctimechar="&TmTk=";
+	//char *Cverifychar="&VerifyCode=";
+	//char mysitehead[512]="http://pcbapi.jiepei.com/Api/EQP/AddEQPLog?";
 	
     //char mytestsite[512]="http://pcbapi.jiepei.com/api/Pcb/GetProcessCard?BusinessOrderNo=J2w-1506974";
 	char *mysite;
@@ -549,7 +558,7 @@ int port_update1(char eqp_num, char eqp_state, char eqp_stepkey_1, char eqp_step
 			
 			else if((itemc->valueint)==1)
 			{
-				write_log(RUNLOG,"curl success\n");
+				//write_log(RUNLOG,"curl success\n");
 				cJSON *itemm = cJSON_GetObjectItem(json,"message");
 				printf("%s:%s\n",itemm->string,itemm->valuestring);
 				cJSON *itemd = cJSON_GetObjectItem(json,"data");
@@ -774,7 +783,7 @@ int port_update2(char eqp_num, char eqp_state, char eqp_stepkey_1, char eqp_step
 			}
 			else if((itemc->valueint)==1)
 			{
-				write_log(RUNLOG,"curl success\n");
+				//write_log(RUNLOG,"curl success\n");
 				cJSON *itemm = cJSON_GetObjectItem(json,"message");
 				printf("%s:%s\n",itemm->string,itemm->valuestring);
 				cJSON *itemd = cJSON_GetObjectItem(json,"data");

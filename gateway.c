@@ -511,8 +511,7 @@ int write_log(char* fp, char* str){
 		time_nowMO[1]='2';
 	}
 	else if((tm_now->tm_mon+1)>0&&(tm_now->tm_mon+1)<10){
-		time_nowMO[0]='0';
-		sprintf(&time_nowMO[1], "%d", tm_now->tm_mon+1);
+		sprintf(time_nowMO, "0%d", tm_now->tm_mon+1);
 	}
 	else{
 		sprintf(time_nowMO, "%d", tm_now->tm_mon+1);
@@ -521,43 +520,25 @@ int write_log(char* fp, char* str){
 	sprintf(time_nowD, "%d", tm_now->tm_mday);
 
     if((tm_now->tm_hour)>=0&&(tm_now->tm_hour)<=9){
-        time_nowH[0]='0';
-        int temp_tm_hour=tm_now->tm_hour;
-        char time_nowH_temp='0'+temp_tm_hour;
-        time_nowMI[1]=time_nowH_temp;
-
+        sprintf(time_nowH, "0%d", tm_now->tm_hour);
     }
     else{
         sprintf(time_nowH, "%d", tm_now->tm_hour);
-    }
-    
+    } 
    
     if((tm_now->tm_min)>=0&&(tm_now->tm_min)<=9){
-        time_nowMI[0]='0';
-        int temp_tm_min=tm_now->tm_min;
-        char time_nowMI_temp='0'+temp_tm_min;
-        time_nowMI[1]=time_nowMI_temp;
- 
+        sprintf(time_nowMI, "0%d", tm_now->tm_min);
     }
     else{
         sprintf(time_nowMI, "%d", tm_now->tm_min);
     }
     
     if((tm_now->tm_sec)>=0&&(tm_now->tm_sec)<=9){  
-        time_nowS[0]='0';
-        char time_nowS_temp[1];
-
-        int temp_tm_sec=tm_now->tm_sec;
-        time_nowS[1]='0'+temp_tm_sec;
-
-
+        sprintf(time_nowS, "0%d", tm_now->tm_sec);
     }
     else{
         sprintf(time_nowS, "%d", tm_now->tm_sec);
     }
-
-        
-    
 	strcat(time_now,time_nowY);
 	strcat(time_now,"-");
 	strcat(time_now,time_nowMO);
@@ -587,15 +568,15 @@ int write_log(char* fp, char* str){
 
 int write_run_info(char uart_str_eqpnum,char uart_str_eqpstate,char uart_str_stepkey0,char uart_str_stepkey1){
     FILE *filepoint;
-    unsigned char time_nowY[4]="\0";
-	unsigned char time_nowMO[2]="\0";
-	unsigned char time_nowD[2]="\0";
-    unsigned char time_nowH[2]="\0";
-    unsigned char time_nowMI[2]="\0";
-    unsigned char time_nowS[2]="\0";
+    unsigned char time_nowY[4];
+	unsigned char time_nowMO[2];
+	unsigned char time_nowD[2];
+    unsigned char time_nowH[2];
+    unsigned char time_nowMI[2];
+    unsigned char time_nowS[2];
     time_t now;
-    unsigned char time_now[30]="\0";
-    unsigned char str_compare_temp[20+6]="\0";
+    unsigned char time_now[26];
+    unsigned char str_compare_temp[20+6];
     unsigned char c_temp;
     int line=0;
     long int offset_temp; 
@@ -610,56 +591,55 @@ int write_run_info(char uart_str_eqpnum,char uart_str_eqpstate,char uart_str_ste
     struct tm *tm_now;
     time(&now);
     tm_now = localtime(&now);
-    
+    memset(time_nowY,0,4);
     for(int i=0;i<20;i++){
 		time_now[i]=0;
 	}
     sprintf(time_nowY, "%d", tm_now->tm_year+1900);
 
+    memset(time_nowMO,0,2);
 	if((tm_now->tm_mon+1)==0){
 		time_nowMO[0]='1';
 		time_nowMO[1]='2';
 	}
 	else if((tm_now->tm_mon+1)>0&&(tm_now->tm_mon+1)<10){
-		time_nowMO[0]='0';
-		sprintf(&time_nowMO[1], "%d", tm_now->tm_mon+1);
+
+        sprintf(time_nowMO, "0%d", tm_now->tm_mon+1);
 	}
 	else{
 		sprintf(time_nowMO, "%d", tm_now->tm_mon+1);
 	}
-
+    
+    memset(time_nowD,0,2);
 	sprintf(time_nowD, "%d", tm_now->tm_mday);
 
+    memset(time_nowH,0,2);
     if((tm_now->tm_hour)>=0&&(tm_now->tm_hour)<=9){
-        time_nowH[0]='0';
-        int temp_tm_hour=tm_now->tm_hour;
-        char time_nowH_temp=(char)('0'+temp_tm_hour);
-        time_nowMI[1]=time_nowH_temp;
+        sprintf(time_nowH, "0%d", tm_now->tm_hour);
+
     }
     else{
         sprintf(time_nowH, "%d", tm_now->tm_hour);
     }
-    
+
+    memset(time_nowMI,0,2);
     if((tm_now->tm_min)>=0&&(tm_now->tm_min)<=9){
-        time_nowMI[0]='0';
-        int temp_tm_min=tm_now->tm_min;
-        char time_nowMI_temp=(char)('0'+temp_tm_min);
-        time_nowMI[1]=time_nowMI_temp;
+        sprintf(time_nowMI, "0%d", tm_now->tm_min);
     }
     else{
         sprintf(time_nowMI, "%d", tm_now->tm_min);
     }
-    
+
+    memset(time_nowS,0,2);
     if((tm_now->tm_sec)>=0&&(tm_now->tm_sec)<=9){
-        time_nowS[0]='0';
-        int temp_tm_sec=tm_now->tm_sec;
-        char time_nowS_temp=(char)('0'+temp_tm_sec);
-        time_nowS[1]=time_nowS_temp;
+        sprintf(time_nowS, "0%d", tm_now->tm_sec);
     }
     else{
+
         sprintf(time_nowS, "%d", tm_now->tm_sec);
     }
-    
+
+    memset(time_now,0,26);
 	strcat(time_now,time_nowY);
 	strcat(time_now,"-");
 	strcat(time_now,time_nowMO);
@@ -672,9 +652,10 @@ int write_run_info(char uart_str_eqpnum,char uart_str_eqpstate,char uart_str_ste
     strcat(time_now,":");
     strcat(time_now,time_nowS);
     strcat(time_now,"/");
-
     
-    if((filepoint=fopen("run-info.txt", "a+"))==NULL){
+    filepoint=fopen("run-info.txt", "a");
+    fclose(filepoint);
+    if((filepoint=fopen("run-info.txt", "rt+"))==NULL){
         printf("open faild\n");
         return -1;
     }
@@ -684,12 +665,17 @@ int write_run_info(char uart_str_eqpnum,char uart_str_eqpstate,char uart_str_ste
     printf("file_len=%d\n",file_len);
 
     fseek(filepoint,0,SEEK_SET);
-    char temp[5120];
-    fread(temp,1,file_len,filepoint);
+    char temp[26];
+    memset(temp,0,26);
+    fread(temp,file_len,1,filepoint);
     printf("%s\n",temp);
     fseek(filepoint,0,SEEK_SET);
     
     if(file_len==0){
+        memset(eqp_stepkey0_temp,0,1);
+        memset(eqp_stepkey1_temp,0,1);
+        memset(eqp_eqpnum_temp,0,1);
+        memset(eqp_state_temp,0,1);
         sprintf(eqp_stepkey0_temp,"%c",uart_str_stepkey0);
         sprintf(eqp_stepkey1_temp,"%c",uart_str_stepkey1);
         sprintf(eqp_eqpnum_temp,"%d",uart_str_eqpnum);
@@ -699,23 +685,20 @@ int write_run_info(char uart_str_eqpnum,char uart_str_eqpstate,char uart_str_ste
         strcat(time_now,eqp_eqpnum_temp);
         strcat(time_now,eqp_state_temp);
         strcat(time_now,"\n");
-
-        fwrite(time_now,1,26,filepoint);
-
+        strcat(time_now,"\0");
         fseek(filepoint,0,SEEK_SET);
-        char temp[5120];
-        fread(temp,1,file_len,filepoint);
-        printf("%s\n",temp);
-        
-        printf("uart_str0\n");
+        fwrite(time_now,26,1,filepoint);
 
         fclose(filepoint);
         return 0;
     }
     for(int i=0;i<(file_len/26);i++){
-        
+        memset(str_compare_temp,0,26);
         fread(str_compare_temp,1,26,filepoint);
-
+        memset(eqp_stepkey0_temp,0,1);
+        memset(eqp_stepkey1_temp,0,1);
+        memset(eqp_eqpnum_temp,0,1);
+        memset(eqp_state_temp,0,1);
         sprintf(eqp_stepkey0_temp,"%c",uart_str_stepkey0);
         sprintf(eqp_stepkey1_temp,"%c",uart_str_stepkey1);
         sprintf(eqp_eqpnum_temp,"%d",uart_str_eqpnum);
@@ -728,7 +711,6 @@ int write_run_info(char uart_str_eqpnum,char uart_str_eqpstate,char uart_str_ste
         ((str_compare_temp[22]!=uart_str_eqpnum1[0])||(str_compare_temp[23]!=uart_str_eqpnum2[0]))&&\
         (i<((file_len/26)-1)))
         {//eqpnum不匹配且没有循环完整个文件----continue &&(i<((file_len/26)-1))
-            printf("uart_str1\n");
             continue;
         }
 
@@ -737,49 +719,30 @@ int write_run_info(char uart_str_eqpnum,char uart_str_eqpstate,char uart_str_ste
         ((str_compare_temp[22]!=uart_str_eqpnum1[0])||(str_compare_temp[23]!=uart_str_eqpnum2[0]))&&\
         (i==((file_len/26)-1)))
         {//eqpnum不匹配且循环到文件最后一行---添加 &&\(i==((file_len/26)-1))
-
             strcat(time_now,eqp_stepkey0_temp);
             strcat(time_now,eqp_stepkey1_temp);
             strcat(time_now,eqp_eqpnum_temp);
             strcat(time_now,eqp_state_temp);
             strcat(time_now,"\n");
-            //write(filepoint,&time_now,25);
-            //fprintf(filepoint,time_now);
-            fwrite(time_now,1,26,filepoint);
-            printf("uart_str2\n");
+            fwrite(time_now,26,1,filepoint);
             break;
         }
-
-        /*if(((str_compare_temp[20]==uart_str_stepkey0)&&(str_compare_temp[21]==uart_str_stepkey1))&&\
-            (str_compare_temp[22]==uart_str_eqpnum1[0])&&\
-            (str_compare_temp[23]==uart_str_eqpnum2[0])&&\
-            (str_compare_temp[24]==eqp_state_temp[0])){//eqpnum匹配eqpstate匹配---break
-            printf("uart_str3\n");
-            break;
-        }*/
 
         if(((str_compare_temp[20]==uart_str_stepkey0)&&(str_compare_temp[21]==uart_str_stepkey1))&&\
         (str_compare_temp[22]==uart_str_eqpnum1[0])&&\
         (str_compare_temp[23]==uart_str_eqpnum2[0])){
-
             strcat(time_now,eqp_stepkey0_temp);
             strcat(time_now,eqp_stepkey1_temp);
             strcat(time_now,eqp_eqpnum_temp);
             strcat(time_now,eqp_state_temp);
             strcat(time_now,"\n");
-
             offset_temp=i*26;
-            fseek(filepoint,0,SEEK_SET);
             fseek(filepoint,offset_temp,SEEK_SET);
-
-            //fprintf(filepoint,time_now);
-            fwrite(time_now,1,26,filepoint);
-
-            printf("uart_str4\n");
-            printf("i=%d\n",i);
+            fwrite(time_now,26,1,filepoint);
             break;
         }
     }
+
 
     fclose(filepoint);
     return 0;
